@@ -14,7 +14,7 @@ bucket_ages <- function(birth_year) {
     # separate ages into buckets
     buckets = as.factor(ifelse(age >= 18 & age <= 29, '18-29',
                                ifelse(age >= 30 & age <= 44, '30-44',
-                                      ifelse(age >= 45 & age <= 64, '45-65', '65 +'))))
+                                      ifelse(age >= 45 & age <= 64, '45-64', '65+'))))
     return(buckets)
 }
 
@@ -110,11 +110,15 @@ clean_cces_data <- function() {
         # get race designation
         left_join(load_race_data(), by = c('race' = 'race_levels')) %>% 
         # select, rename variables 
-        select(region, state, gender, age, 'income' = income.y, 'education' = education.y, 'race' = race.y, approval) %>% 
+        select(region, state, 'sex' = gender, age, 'income' = income.y, 'education' = education.y, 'race' = race.y, approval) %>% 
         arrange(state)
     
     return(cces_data)
 }
+
+###################
+### CENSUS DATA ###
+###################
 
 load_census_data <- function(vars) {
     # ``````
@@ -130,7 +134,6 @@ load_census_data <- function(vars) {
     return(census)
 }
 
-
 get_poststratification <- function() {
     # ``````
     # creates poststratification table from census data
@@ -142,15 +145,15 @@ get_poststratification <- function() {
                                       'age', 
                                       'sex', 
                                       'education', 
-                                      'weighted2008')) %>% 
+                                      'weighted2008',
+                                      'raw2008')) %>% 
         # obtain unique combinations of demographics
         group_by(state, race, income, age, sex, education) %>% 
-        # sum weighted estimates of each unique combination
-            summarise(count = sum(weighted2008))
+        # sum weighted and raw estimates of each unique combination
+        summarise(weighted_count = sum(weighted2008),
+                  raw_count = sum(raw2008),
+                  percentage = raw_count / weighted_count)
     
     return(data)
 }
 
-
-census_data = get_poststratification()
-cces_data = clean_cces_data()
